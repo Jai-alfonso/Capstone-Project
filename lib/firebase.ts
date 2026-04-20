@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
@@ -14,74 +14,37 @@ const firebaseConfig = {
   measurementId: "G-B0343W9JMX",
 };
 
-let app: any = null;
-let authInstance: any = null;
-let dbInstance: any = null;
-let storageInstance: any = null;
-let functionsInstance: any = null;
+// --- Initialization Logic ---
 
+let app;
 try {
-  app = initializeApp(firebaseConfig);
-  console.log("[v0] Firebase app initialized");
-
-  try {
-    authInstance = getAuth(app);
-    console.log("[v0] Firebase auth service initialized");
-  } catch (authError: any) {
-    console.warn(
-      "[v0] Firebase auth initialization failed (using localStorage fallback):",
-      authError.message
-    );
-    authInstance = null;
-  }
-
-  try {
-    dbInstance = getFirestore(app);
-    console.log("[v0] Firebase firestore initialized");
-  } catch (dbError: any) {
-    console.warn(
-      "[v0] Firebase firestore initialization failed:",
-      dbError.message
-    );
-    dbInstance = null;
-  }
-
-  try {
-    storageInstance = getStorage(app);
-    console.log("[v0] Firebase storage initialized");
-  } catch (storageError: any) {
-    console.warn(
-      "[v0] Firebase storage initialization failed:",
-      storageError.message
-    );
-    storageInstance = null;
-  }
-
-  try {
-    functionsInstance = getFunctions(app);
-    console.log("[v0] Firebase functions initialized");
-
-    if (
-      process.env.NODE_ENV === "development" &&
-      typeof window !== "undefined"
-    ) {
-    }
-  } catch (functionsError: any) {
-    console.warn(
-      "[v0] Firebase functions initialization failed:",
-      functionsError.message
-    );
-    functionsInstance = null;
-  }
+  // Check if a Firebase app has already been initialized to prevent 
+  // "Firebase: App named '[DEFAULT]' already exists" error during builds/reloads.
+  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  console.log("[v0] Firebase app initialized/retrieved successfully");
 } catch (error: any) {
-  console.warn("[v0] Firebase initialization error:", error.message);
-  app = null;
+  console.error("[v0] Firebase initialization error:", error.message);
 }
 
-export const auth = authInstance;
-export const db = dbInstance;
-export const storage = storageInstance;
-export const functions = functionsInstance;
-export const firebaseApp = app;
+// Initialize services with safe fallbacks
+const authInstance = app ? getAuth(app) : null;
+if (authInstance) console.log("[v0] Firebase auth service initialized");
+
+const dbInstance = app ? getFirestore(app) : null;
+if (dbInstance) console.log("[v0] Firebase firestore initialized");
+
+const storageInstance = app ? getStorage(app) : null;
+if (storageInstance) console.log("[v0] Firebase storage initialized");
+
+const functionsInstance = app ? getFunctions(app) : null;
+if (functionsInstance) console.log("[v0] Firebase functions initialized");
+
+// --- Exports ---
+
+export { authInstance as auth };
+export { dbInstance as db };
+export { storageInstance as storage };
+export { functionsInstance as functions };
+export { app as firebaseApp };
 
 export default app;

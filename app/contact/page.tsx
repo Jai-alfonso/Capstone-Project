@@ -1,5 +1,6 @@
 "use client";
 
+import { auth } from "@/lib/firebase";
 import type React from "react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,10 @@ import MessagingService from "@/lib/message-service";
 export default function ContactPage() {
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const { user, userProfile } = useAuth();
+  
+  // Safety wrapper state to prevent hydration mismatch/white screen
+  const [isReady, setIsReady] = useState(false);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -40,6 +45,7 @@ export default function ContactPage() {
     otherSubject: "",
     message: "",
   });
+
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [showRecaptchaError, setShowRecaptchaError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -49,6 +55,23 @@ export default function ContactPage() {
     type?: "conversation" | "inquiry";
   } | null>(null);
 
+  // Set isReady to true on mount
+  useEffect(() => {
+    setIsReady(true);
+  }, []);
+
+  // Sync user profile data when it becomes available
+  useEffect(() => {
+    if (userProfile && user) {
+      setFormData((prev) => ({
+        ...prev,
+        firstName: userProfile.firstName || "",
+        lastName: userProfile.lastName || "",
+        email: user.email || "",
+      }));
+    }
+  }, [user, userProfile]);
+
   const handleRecaptchaChange = (token: string | null) => {
     setRecaptchaToken(token);
     setShowRecaptchaError(false);
@@ -57,7 +80,6 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    
     if (!recaptchaToken) {
       setShowRecaptchaError(true);
       setSubmitResult({
@@ -67,13 +89,11 @@ export default function ContactPage() {
       return;
     }
 
-    
     const finalSubject =
       formData.subject === "other" && formData.otherSubject
         ? formData.otherSubject
         : formData.subject;
 
-    
     if (
       !formData.firstName ||
       !formData.lastName ||
@@ -92,33 +112,30 @@ export default function ContactPage() {
       setSubmitting(true);
       setSubmitResult(null);
 
-      // 1. Prepare data including the recaptchaToken
       const inquiryData = {
         firstName: userProfile?.firstName || formData.firstName || "",
         lastName: userProfile?.lastName || formData.lastName || "",
         email: user?.email || formData.email || "",
-        phone: formData.phone || "", 
+        phone: formData.phone || "",
         subject: finalSubject || "",
         message: formData.message || "",
         userId: user?.uid || undefined,
-        captchaToken: recaptchaToken, // MUST include this for the backend
+        captchaToken: recaptchaToken,
       };
 
-      // 2. Save to Database (Existing Logic)
       const result = await MessagingService.saveInquiry(inquiryData);
 
-      // 3. Trigger the Email API (New Logic to match your route.ts)
       const emailResponse = await fetch("/api/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          to: "admindelgadolaw@delgadooffices.com", // Your admin email
+          to: "admindelgadolaw@delgadooffices.com",
           subject: `New Inquiry: ${finalSubject}`,
           message: formData.message,
           adminName: "Admin",
           clientName: `${inquiryData.firstName} ${inquiryData.lastName}`,
           inquiryId: result.replace("conversation:", ""),
-          captchaToken: recaptchaToken, // Verification happens here
+          captchaToken: recaptchaToken,
         }),
       });
 
@@ -128,7 +145,6 @@ export default function ContactPage() {
         throw new Error(emailData.error || "Failed to verify reCAPTCHA or send email.");
       }
 
-      // 4. Success Handling
       if (result.startsWith("conversation:")) {
         setSubmitResult({
           success: true,
@@ -143,7 +159,6 @@ export default function ContactPage() {
         });
       }
 
-      // 5. Reset Form
       setFormData({
         firstName: userProfile?.firstName || "",
         lastName: userProfile?.lastName || "",
@@ -166,22 +181,16 @@ export default function ContactPage() {
     } finally {
       setSubmitting(false);
     }
+  };
 
-
-
-
-
-  
-  useEffect(() => {
-    if (userProfile && user) {
-      setFormData((prev) => ({
-        ...prev,
-        firstName: userProfile.firstName || "",
-        lastName: userProfile.lastName || "",
-        email: user.email || "",
-      }));
-    }
-  }, [user, userProfile]);
+  // Prevent rendering until the client is ready to avoid the white screen
+  if (!isReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="h-10 w-10 animate-spin text-red-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -239,41 +248,28 @@ export default function ContactPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label
-                        htmlFor="firstName"
-                        className="text-sm font-medium text-gray-700"
-                      >
+                      <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
                         First Name *
                       </Label>
                       <Input
                         id="firstName"
                         placeholder="First Name"
                         value={formData.firstName}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            firstName: e.target.value,
-                          })
-                        }
+                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                         className="mt-1"
                         required
                         disabled={!!userProfile?.firstName}
                       />
                     </div>
                     <div>
-                      <Label
-                        htmlFor="lastName"
-                        className="text-sm font-medium text-gray-700"
-                      >
+                      <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
                         Last Name *
                       </Label>
                       <Input
                         id="lastName"
                         placeholder="Last Name"
                         value={formData.lastName}
-                        onChange={(e) =>
-                          setFormData({ ...formData, lastName: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                         className="mt-1"
                         required
                         disabled={!!userProfile?.lastName}
@@ -282,10 +278,7 @@ export default function ContactPage() {
                   </div>
 
                   <div>
-                    <Label
-                      htmlFor="email"
-                      className="text-sm font-medium text-gray-700"
-                    >
+                    <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                       Email *
                     </Label>
                     <Input
@@ -293,9 +286,7 @@ export default function ContactPage() {
                       type="email"
                       placeholder="Email"
                       value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="mt-1"
                       required
                       disabled={!!user?.email}
@@ -303,28 +294,20 @@ export default function ContactPage() {
                   </div>
 
                   <div>
-                    <Label
-                      htmlFor="phone"
-                      className="text-sm font-medium text-gray-700"
-                    >
+                    <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
                       Phone Number
                     </Label>
                     <Input
                       id="phone"
                       placeholder="+63XXX XXXX XXXX"
                       value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="mt-1"
                     />
                   </div>
 
                   <div>
-                    <Label
-                      htmlFor="subject"
-                      className="text-sm font-medium text-gray-700"
-                    >
+                    <Label htmlFor="subject" className="text-sm font-medium text-gray-700">
                       Subject *
                     </Label>
                     <Select
@@ -333,8 +316,7 @@ export default function ContactPage() {
                         setFormData({
                           ...formData,
                           subject: value,
-                          otherSubject:
-                            value === "other" ? formData.otherSubject : "",
+                          otherSubject: value === "other" ? formData.otherSubject : "",
                         })
                       }
                       required
@@ -343,18 +325,12 @@ export default function ContactPage() {
                         <SelectValue placeholder="Select Subject" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="consultation">
-                          Legal Consultation
-                        </SelectItem>
+                        <SelectItem value="consultation">Legal Consultation</SelectItem>
                         <SelectItem value="civil">Civil Case</SelectItem>
                         <SelectItem value="criminal">Criminal Case</SelectItem>
-                        <SelectItem value="administrative">
-                          Administrative Case
-                        </SelectItem>
+                        <SelectItem value="administrative">Administrative Case</SelectItem>
                         <SelectItem value="tax">Tax & Accounting</SelectItem>
-                        <SelectItem value="corporate">
-                          Corporate Services
-                        </SelectItem>
+                        <SelectItem value="corporate">Corporate Services</SelectItem>
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
@@ -362,22 +338,14 @@ export default function ContactPage() {
 
                   {formData.subject === "other" && (
                     <div>
-                      <Label
-                        htmlFor="otherSubject"
-                        className="text-sm font-medium text-gray-700"
-                      >
+                      <Label htmlFor="otherSubject" className="text-sm font-medium text-gray-700">
                         Please Specify *
                       </Label>
                       <Input
                         id="otherSubject"
                         placeholder="Please specify your subject"
                         value={formData.otherSubject}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            otherSubject: e.target.value,
-                          })
-                        }
+                        onChange={(e) => setFormData({ ...formData, otherSubject: e.target.value })}
                         className="mt-1"
                         required={formData.subject === "other"}
                       />
@@ -385,19 +353,14 @@ export default function ContactPage() {
                   )}
 
                   <div>
-                    <Label
-                      htmlFor="message"
-                      className="text-sm font-medium text-gray-700"
-                    >
+                    <Label htmlFor="message" className="text-sm font-medium text-gray-700">
                       Your Message *
                     </Label>
                     <Textarea
                       id="message"
                       placeholder="Your Message"
                       value={formData.message}
-                      onChange={(e) =>
-                        setFormData({ ...formData, message: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                       rows={6}
                       className="mt-1"
                       required
@@ -435,8 +398,7 @@ export default function ContactPage() {
 
                   {user && (
                     <p className="text-sm text-gray-500 text-center">
-                      You are logged in as {user.email}. Your inquiry will be
-                      saved to your account.
+                      You are logged in as {user.email}. Your inquiry will be saved to your account.
                     </p>
                   )}
                 </form>
@@ -445,9 +407,7 @@ export default function ContactPage() {
 
             <div className="lg:col-span-3">
               <div className="bg-white rounded-lg shadow-sm border p-8">
-                <h2 className="text-2xl font-bold text-navy-900 mb-8">
-                  Delgado Law Office
-                </h2>
+                <h2 className="text-2xl font-bold text-navy-900 mb-8">Delgado Law Office</h2>
 
                 <div className="space-y-6 mb-8">
                   <div className="flex items-start gap-3">
@@ -470,14 +430,10 @@ export default function ContactPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
                       <Mail className="h-5 w-5 text-red-600 flex-shrink-0" />
-                      <span className="text-gray-700">
-                        admindelgadolaw@delgadooffices.com
-                      </span>
+                      <span className="text-gray-700">admindelgadolaw@delgadooffices.com</span>
                     </div>
                     <div className="flex items-center gap-3 ml-8">
-                      <span className="text-gray-700">
-                        aliajadelgado88@gmail.com
-                      </span>
+                      <span className="text-gray-700">aliajadelgado88@gmail.com</span>
                     </div>
                   </div>
 
@@ -487,19 +443,15 @@ export default function ContactPage() {
                       <div className="text-gray-700">
                         <span className="font-medium">Office Hours</span>
                       </div>
-                      <div className="text-gray-700">
-                        Monday - Friday: 9:00 AM - 5:00 PM
-                      </div>
-                      <div className="text-gray-700">
-                        Saturday - Sunday: Closed
-                      </div>
+                      <div className="text-gray-700">Monday - Friday: 9:00 AM - 5:00 PM</div>
+                      <div className="text-gray-700">Saturday - Sunday: Closed</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3864.286818283328!2d121.04342267486871!3d14.410622486053468!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d04611cb9a37%3A0x3fed9dc6a6804c18!2sLizel%20Building!5e0!3m2!1sen!2sjp!4v1776670926439!5m2!1sen!2sjp"
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3864.0326162391217!2d121.0427329!3d14.4251419!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d1e0186599b5%3A0xc3f8e5f1f1e5f1e5!2sMuntinlupa%20City!5e0!3m2!1sen!2sph!4v1713600000000!5m2!1sen!2sph"
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
@@ -518,5 +470,4 @@ export default function ContactPage() {
       <Footer />
     </div>
   );
-}
 }

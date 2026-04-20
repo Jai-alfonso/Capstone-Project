@@ -513,9 +513,14 @@ class MessagingService {
             senderRole: "client" as const,
           });
 
-          await updateDoc(doc(db, this.INQUIRIES_COLLECTION, docRef.id), {
-            conversationId: conversation.id,
-          });
+          try {
+    const inquiryDocRef = doc(db, this.INQUIRIES_COLLECTION, docRef.id);
+    await updateDoc(inquiryDocRef, {
+      conversationId: conversation.id,
+    });
+} catch (e) {
+    console.error("Failed to link conversation to inquiry, but inquiry was saved.");
+}
 
           return `conversation:${conversation.id}`;
         } catch (convError) {
