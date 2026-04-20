@@ -1,0 +1,107 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Users collection - users can read/write their own profile, admins can access all
+    match /users/{userId} {
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Clients collection - only admins can manage clients
+    match /clients/{clientId} {
+      allow read, write, create, update, delete: if isAdmin();
+    }
+    
+    // Cases collection - clients can only access their own cases, admins can access all
+    match /cases/{caseId} {
+      allow read, write: if isAuthenticated() && 
+        (resource.data.clientId == request.auth.uid || isAdmin());
+      allow create: if isAdmin();
+    }
+    
+    // Appointments collection - clients can only access their own appointments, admins can access all
+    match /appointments/{appointmentId} {
+      allow read, write: if isAuthenticated() && 
+        (resource.data.clientId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();
+    }
+    
+    // Documents collection - clients can only access their own documents, admins can access all
+    match /documents/{documentId} {
+      allow read, write: if isAuthenticated() && 
+        (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();
+    }
+    
+    // Audit logs - only admins can access
+    match /auditLogs/{logId} {
+      allow read, write, create: if isAdmin();
+    }
+    
+    // Attorney availability - admins can manage, clients can only read
+    match /attorneyAvailability/{availabilityId} {
+      allow read: if isAuthenticated();
+      allow write, create, update, delete: if isAdmin();
+    }
+    
+    // Progress stages (part of appointments) - clients can read their own, admins can manage
+    match /progressStages/{stageId} {
+      allow read: if isAuthenticated();
+      allow write, create, update, delete: if isAdmin();
+    }
+    
+    // Email notifications log - only admins can access
+    match /emailNotifications/{notificationId} {
+      allow read, write, create: if isAdmin();
+    }
+    
+    // Reports data - only admins can access
+    match /reports/{reportId} {
+      allow read, write, create: if isAdmin();
+    }
+    
+    // Inquiries collection - anyone can create, authenticated users can update their own
+    match /inquiries/{inquiryId} {
+      allow create: if true; // Allow public submissions from contact form
+      allow update: if isAdmin() || 
+        (request.auth != null && request.auth.uid == resource.data.userId) ||
+        (resource.data.userId == null || resource.data.userId == ''); // Allow update if inquiry is unowned
+      allow read, delete: if isAdmin();
+    }
+    
+    // Conversations collection - authenticated users can create/read their own, admins can access all
+    match /conversations/{conversationId} {
+      allow read, write, create: if isAuthenticated() && 
+        (request.auth.uid == resource.data.clientId || request.auth.uid == resource.data.adminId || isAdmin());
+      allow read, write, create: if isAdmin();
+    }
+    
+    // Messages within conversations - authenticated users can read/write their own conversations, admins can access all
+    match /conversations/{conversationId}/messages/{messageId} {
+      allow read, write, create: if isAuthenticated() && 
+        (request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.clientId || 
+         request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.adminId ||
+         isAdmin());
+    }
+    
+    // Notifications collection - authenticated users can only read their own, admins can manage all
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isAdmin());
+      allow write, create, update: if isAdmin();
+    }
+  }
+}

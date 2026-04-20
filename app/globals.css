@@ -1,0 +1,528 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@300;400;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-serif: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif font-semibold;
+    font-family: var(--font-serif);
+    line-height: 1.2;
+  }
+
+  h1 {
+    @apply font-bold;
+    font-weight: 700;
+  }
+}
+
+/* Custom animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animation-delay-400 {
+  animation-delay: 0.4s;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition-property: color, background-color, border-color,
+    text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter,
+    backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid #2c3e50;
+  outline-offset: 2px;
+}
+
+.dark *:focus-visible {
+  outline-color: #60a5fa;
+}
+
+/* Virtual scroll container */
+.virtual-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.dark .virtual-scroll-container {
+  scrollbar-color: #6b7280 #374151;
+}
+
+/* Search highlight styles */
+mark {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.dark mark {
+  background-color: #451a03;
+  color: #fbbf24;
+}
+
+/* Dark mode styles for navbar */
+.dark nav {
+  background-color: hsl(222.2 84% 4.9%);
+  border-bottom: 1px solid hsl(217.2 32.6% 17.5%);
+}
+
+.dark nav .text-gray-700 {
+  color: hsl(210 40% 80%);
+}
+
+.dark nav .text-gray-700:hover {
+  color: hsl(210 40% 98%);
+}
+
+.dark nav .text-navy-900 {
+  color: hsl(210 40% 98%);
+}
+
+.dark nav .text-navy-700 {
+  color: hsl(210 40% 90%);
+}
+
+.dark nav .text-gray-600 {
+  color: hsl(215 20.2% 65.1%);
+}
+
+.dark nav .hover\:bg-gray-100:hover {
+  background-color: hsl(217.2 32.6% 17.5%);
+}
+
+.dark nav .hover\:bg-gray-50:hover {
+  background-color: hsl(217.2 32.6% 15%);
+}
+
+.dark nav .bg-navy-700 {
+  background-color: hsl(217.2 32.6% 20%);
+}
+
+.dark nav .bg-navy-700:hover {
+  background-color: hsl(217.2 32.6% 25%);
+}
+
+/* Improved dark mode button contrast */
+.dark .bg-red-accent {
+  background-color: #dc2626 !important;
+  color: white !important;
+}
+
+.dark .hover\:bg-red-600:hover {
+  background-color: #b91c1c !important;
+}
+/* Offline Page Styles */
+.offline-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  color: #1a202c;
+  z-index: 9999;
+  padding: 20px;
+  font-family: var(--font-source-sans), -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+}
+
+.offline-content {
+  text-align: center;
+  max-width: 1000px;
+  padding: 3rem 2rem;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.offline-content::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #e53e3e 0%, #ed8936 100%);
+}
+
+.offline-icon-wrapper {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.offline-icon {
+  height: 80px;
+  width: 80px;
+  color: #e53e3e;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+}
+
+.offline-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 1rem;
+  font-family: var(--font-crimson), Georgia, serif;
+}
+
+.offline-message {
+  font-size: 1.125rem;
+  color: #4a5568;
+  margin-bottom: 2.5rem;
+  line-height: 1.6;
+}
+
+.offline-tips {
+  text-align: left;
+  background: #f7fafc;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  border: 1px solid #e2e8f0;
+}
+
+.offline-tips h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.offline-tips ul {
+  list-style: none;
+  padding: 0;
+}
+
+.offline-tips li {
+  padding: 0.5rem 0;
+  color: #4a5568;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.offline-tips li::before {
+  content: "✓";
+  color: #48bb78;
+  font-weight: bold;
+}
+
+.offline-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.offline-button {
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.offline-button.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.offline-button.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.offline-button.secondary {
+  background: #edf2f7;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.offline-button.secondary:hover {
+  background: #e2e8f0;
+  transform: translateY(-2px);
+}
+
+.offline-contact {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.contact-card {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.contact-card > div {
+  flex: 1;
+}
+
+.contact-card h4 {
+  color: white;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.contact-card p {
+  color: #cbd5e0;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.contact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+}
+
+.contact-item svg {
+  color: #a0aec0;
+  flex-shrink: 0;
+}
+
+.offline-status {
+  font-size: 0.875rem;
+  color: #718096;
+}
+
+.status-offline {
+  color: #e53e3e;
+  font-weight: 600;
+  background: #fed7d7;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  margin-left: 0.5rem;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .offline-container {
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  }
+
+  .offline-content {
+    background: #2d3748;
+    color: #e2e8f0;
+  }
+
+  .offline-title {
+    color: #f7fafc;
+  }
+
+  .offline-message {
+    color: #cbd5e0;
+  }
+
+  .offline-tips {
+    background: #4a5568;
+    border-color: #718096;
+  }
+
+  .offline-tips h3 {
+    color: #e2e8f0;
+  }
+
+  .offline-tips li {
+    color: #cbd5e0;
+  }
+
+  .offline-button.secondary {
+    background: #4a5568;
+    color: #e2e8f0;
+    border-color: #718096;
+  }
+
+  .offline-button.secondary:hover {
+    background: #5a6575;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .offline-content {
+    padding: 2rem 1rem;
+  }
+
+  .offline-title {
+    font-size: 2rem;
+  }
+
+  .offline-actions {
+    flex-direction: column;
+  }
+
+  .offline-button {
+    width: 100%;
+  }
+
+  .contact-card {
+    flex-direction: column;
+    text-align: center;
+  }
+}
