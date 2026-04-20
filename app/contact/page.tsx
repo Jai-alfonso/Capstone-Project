@@ -32,15 +32,14 @@ import MessagingService from "@/lib/message-service";
 export default function ContactPage() {
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const { user, userProfile } = useAuth();
-  
-  // Safety wrapper state to prevent hydration mismatch/white screen
+
   const [isReady, setIsReady] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
-    phone: "",
+    phone: "+63", // Pre-saved Philippines prefix
     subject: "",
     otherSubject: "",
     message: "",
@@ -55,12 +54,10 @@ export default function ContactPage() {
     type?: "conversation" | "inquiry";
   } | null>(null);
 
-  // Set isReady to true on mount
   useEffect(() => {
     setIsReady(true);
   }, []);
 
-  // Sync user profile data when it becomes available
   useEffect(() => {
     if (userProfile && user) {
       setFormData((prev) => ({
@@ -76,6 +73,25 @@ export default function ContactPage() {
     setRecaptchaToken(token);
     setShowRecaptchaError(false);
   };
+
+  // Custom handler to ensure +63 cannot be fully deleted and is validated
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+
+    // 1. Force +63 prefix: if the user tries to delete it, reset it
+    if (!value.startsWith("+63")) {
+      value = "+63";
+    }
+
+    // 2. Extract only the numeric part after +63
+    const numbersOnly = value.slice(3).replace(/\D/g, "");
+
+    // 3. Apply the 10-digit limit
+    const limitedNumbers = numbersOnly.slice(0, 10);
+    const finalValue = "+63" + limitedNumbers;
+
+    setFormData({ ...formData, phone: finalValue });
+  }; // Fixed: Added missing closing brace here
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +179,7 @@ export default function ContactPage() {
         firstName: userProfile?.firstName || "",
         lastName: userProfile?.lastName || "",
         email: user?.email || "",
-        phone: "",
+        phone: "+63",
         subject: "",
         otherSubject: "",
         message: "",
@@ -183,7 +199,6 @@ export default function ContactPage() {
     }
   };
 
-  // Prevent rendering until the client is ready to avoid the white screen
   if (!isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -299,10 +314,14 @@ export default function ContactPage() {
                     </Label>
                     <Input
                       id="phone"
-                      placeholder="+63XXX XXXX XXXX"
+                      type="tel"
+                      placeholder="+63xXX XXX XXXX"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={handlePhoneChange}
                       className="mt-1"
+                      pattern="\+63\d{9,10}"
+                      maxLength={13} 
+                      required
                     />
                   </div>
 
@@ -451,7 +470,7 @@ export default function ContactPage() {
 
                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3864.0326162391217!2d121.0427329!3d14.4251419!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d1e0186599b5%3A0xc3f8e5f1f1e5f1e5!2sMuntinlupa%20City!5e0!3m2!1sen!2sph!4v1713600000000!5m2!1sen!2sph"
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3864.717157833535!2d121.0428!3d14.4173!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTTCsDI1JzAyLjMiTiAxMjHCsDAyJzM0LjEiRQ!5e0!3m2!1sen!2sph!4v1620000000000!5m2!1sen!2sph"
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
