@@ -5,6 +5,30 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // --- GOOGLE reCAPTCHA VERIFICATION START ---
+    // We expect the frontend to send a field called 'captchaToken'
+    const captchaToken = body.captchaToken;
+
+    if (!captchaToken) {
+      return NextResponse.json(
+        { success: false, error: "ReCAPTCHA token is missing." },
+        { status: 400 }
+      );
+    }
+
+    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${captchaToken}`;
+
+    const recaptchaRes = await fetch(verifyUrl, { method: "POST" });
+    const recaptchaJson = await recaptchaRes.json();
+
+    if (!recaptchaJson.success) {
+      return NextResponse.json(
+        { success: false, error: "ReCAPTCHA verification failed. Are you a robot?" },
+        { status: 400 }
+      );
+    }
+    // --- GOOGLE reCAPTCHA VERIFICATION END ---
+
     console.log("Received email request:", {
       to: body.to,
       subject: body.subject,
@@ -48,7 +72,6 @@ export async function POST(request: NextRequest) {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-
       tls: {
         rejectUnauthorized: false,
       },
@@ -120,22 +143,17 @@ export async function POST(request: NextRequest) {
       <body>
         <div class="email-container">
           <div class="email-header">
-            <h2>Alia Jan Delgado Law Office</h2>
-           
+            <h2>Delgado Law Office</h2>
           </div>
-          
           <div class="email-content">
             <h3>Dear ${escapeHtml(body.clientName)},</h3>
-            
             <p>Thank you for contacting us regarding: <strong>${escapeHtml(
               body.subject.replace("Re: ", "")
             )}</strong></p>
-            
             <div class="response-box">
               <p><strong>Our Response:</strong></p>
               <p>${escapeHtml(body.message).replace(/\n/g, "<br>")}</p>
             </div>
-            
             ${
               body.originalMessage
                 ? `
@@ -146,25 +164,22 @@ export async function POST(request: NextRequest) {
             `
                 : ""
             }
-            
             <div class="signature">
               <p><strong>Best regards,</strong><br>
               ${escapeHtml(body.adminName)}<br>
-              <em>Alia Jan Delgado Law Office</em></p>
-              
+              <em>Delgado Law Office</em></p>
               <p>
-                Phone: ${process.env.FIRM_PHONE || "+63 (XXX) XXX-XXXX"}<br>
+                Phone: ${process.env.FIRM_PHONE || "+63 908 898 9503"}<br>
                 Email: ${
-                  process.env.CONTACT_EMAIL || "contact@lawdelgado.com"
+                  process.env.CONTACT_EMAIL || "admindelgadolaw@delgadooffices.com"
                 }<br>
                 Address: ${
                   process.env.FIRM_ADDRESS ||
-                  "123 Legal Avenue, Makati City, Philippines 1200"
+                  "4th Flr. Lizel Bldg., 269 National Rd., Muntinlupa City, Philippines"
                 }
               </p>
             </div>
           </div>
-          
           <div class="footer">
             <p>This is an automated response to your inquiry. Please do not reply directly to this email.</p>
             <p>If you have further questions, please contact us through our website or call our office directly.</p>
@@ -189,13 +204,12 @@ ${
 }
 Best regards,
 ${body.adminName}
-Alia Jan Delgado Law Office
-
-Phone: ${process.env.FIRM_PHONE || "+63 (XXX) XXX-XXXX"}
-Email: ${process.env.CONTACT_EMAIL || "contact@lawdelgado.com"}
+Atty. Alia Jan Delgado
+Phone: ${process.env.FIRM_PHONE || "+63 908 898 9503"}
+Email: ${process.env.CONTACT_EMAIL || "admindelgadolaw@delgadooffices.com"}
 Address: ${
       process.env.FIRM_ADDRESS ||
-      "123 Legal Avenue, Makati City, Philippines 1200"
+      "4th Flr. Lizel Bldg., 269 National Rd., Muntinlupa City, Philippines"
     }
 
 ---
@@ -220,7 +234,6 @@ This is an automated response to your inquiry. Please do not reply directly to t
     });
   } catch (error: any) {
     console.error("Error sending email:", error);
-
     return NextResponse.json(
       {
         success: false,

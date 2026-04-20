@@ -92,7 +92,7 @@ export default function ContactPage() {
       setSubmitting(true);
       setSubmitResult(null);
 
-      
+      // 1. Prepare data including the recaptchaToken
       const inquiryData = {
         firstName: userProfile?.firstName || formData.firstName || "",
         lastName: userProfile?.lastName || formData.lastName || "",
@@ -100,37 +100,54 @@ export default function ContactPage() {
         phone: formData.phone || "", 
         subject: finalSubject || "",
         message: formData.message || "",
-        
         userId: user?.uid || undefined,
+        captchaToken: recaptchaToken, // MUST include this for the backend
       };
 
-      console.log("Submitting inquiry data:", inquiryData);
-
-      
+      // 2. Save to Database (Existing Logic)
       const result = await MessagingService.saveInquiry(inquiryData);
 
-      
+      // 3. Trigger the Email API (New Logic to match your route.ts)
+      const emailResponse = await fetch("/api/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: "admindelgadolaw@delgadooffices.com", // Your admin email
+          subject: `New Inquiry: ${finalSubject}`,
+          message: formData.message,
+          adminName: "Admin",
+          clientName: `${inquiryData.firstName} ${inquiryData.lastName}`,
+          inquiryId: result.replace("conversation:", ""),
+          captchaToken: recaptchaToken, // Verification happens here
+        }),
+      });
+
+      const emailData = await emailResponse.json();
+
+      if (!emailResponse.ok) {
+        throw new Error(emailData.error || "Failed to verify reCAPTCHA or send email.");
+      }
+
+      // 4. Success Handling
       if (result.startsWith("conversation:")) {
         setSubmitResult({
           success: true,
-          message:
-            "Thank you for your inquiry! Your message has been sent. You can continue the conversation in your Messages dashboard.",
+          message: "Thank you! Your message has been sent. You can continue in your Messages dashboard.",
           type: "conversation",
         });
       } else {
         setSubmitResult({
           success: true,
-          message:
-            "Thank you for your inquiry! We have received your message and will get back to you via email shortly.",
+          message: "Thank you! We have received your message and will get back to you via email shortly.",
           type: "inquiry",
         });
       }
 
-      
+      // 5. Reset Form
       setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
+        firstName: userProfile?.firstName || "",
+        lastName: userProfile?.lastName || "",
+        email: user?.email || "",
         phone: "",
         subject: "",
         otherSubject: "",
@@ -149,7 +166,10 @@ export default function ContactPage() {
     } finally {
       setSubmitting(false);
     }
-  };
+
+
+
+
 
   
   useEffect(() => {
@@ -387,7 +407,7 @@ export default function ContactPage() {
                   <div>
                     <ReCAPTCHA
                       ref={recaptchaRef}
-                      sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+                      sitekey="6Lf8rsAsAAAAABkXvoGLJq2Y0n-1e4oz718FenaD"
                       onChange={handleRecaptchaChange}
                     />
                     {showRecaptchaError && (
@@ -479,7 +499,7 @@ export default function ContactPage() {
 
                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3861.2596193478896!2d121.04370731483582!3d14.58869898979583!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397c90264a0c5b9%3A0x2b063d748cf4d6c!2sManila%2C%20Metro%20Manila!5e0!3m2!1sen!2sph!4v1234567890123!5m2!1sen!2sph"
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3864.286818283328!2d121.04342267486871!3d14.410622486053468!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d04611cb9a37%3A0x3fed9dc6a6804c18!2sLizel%20Building!5e0!3m2!1sen!2sjp!4v1776670926439!5m2!1sen!2sjp"
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
@@ -498,4 +518,5 @@ export default function ContactPage() {
       <Footer />
     </div>
   );
+}
 }
