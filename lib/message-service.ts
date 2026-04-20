@@ -82,6 +82,9 @@ class MessagingService {
   private readonly EMAIL_API_URL = "/api/email";
 
   private getFirestore() {
+    if (!db) {
+      throw new Error("Firestore not initialized");
+    }
     return db;
   }
 
@@ -677,6 +680,7 @@ class MessagingService {
           clientName: clientName,
           inquiryId: inquiryId,
           originalMessage: inquiry.message,
+          isAdminAction: true, 
         });
 
         await updateDoc(inquiryRef, {
@@ -710,6 +714,7 @@ class MessagingService {
     clientName: string;
     inquiryId: string;
     originalMessage?: string;
+    isAdminAction?: boolean;
   }): Promise<void> {
     try {
       console.log(`Sending email via API to: ${emailData.to}`);
@@ -727,6 +732,7 @@ class MessagingService {
           clientName: emailData.clientName,
           inquiryId: emailData.inquiryId,
           originalMessage: emailData.originalMessage || "",
+          isAdminAction: emailData.isAdminAction ?? true, // Add this line - defaults to true for this service
         }),
       });
 
@@ -768,6 +774,7 @@ class MessagingService {
         clientName,
         inquiryId: "notification",
         originalMessage: "",
+        isAdminAction: true, // Add this here
       });
     } catch (error) {
       console.warn("Email service unavailable:", error);
@@ -821,7 +828,7 @@ class MessagingService {
     // Use setTimeout(fn, 0) to schedule in background
     setTimeout(async () => {
       try {
-        const notificationsRef = collection(db, "notifications");
+        const notificationsRef = collection(this.getFirestore(), "notifications");
 
         // Hardcode an admin UID to avoid querying users collection
         const adminUid = "jpsEnY2B8xZZU9WAoFoUbXaYrnE3";

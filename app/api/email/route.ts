@@ -6,26 +6,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // --- GOOGLE reCAPTCHA VERIFICATION START ---
-    // We expect the frontend to send a field called 'captchaToken'
-    const captchaToken = body.captchaToken;
+    // Bypass reCAPTCHA if this is an Admin action
+    const isAdminAction = body.isAdminAction === true;
+    const isSystemAction = !body.captchaToken && (body.subject.includes("Verification") || body.subject.includes("2FA"));
 
-    if (!captchaToken) {
-      return NextResponse.json(
-        { success: false, error: "ReCAPTCHA token is missing." },
-        { status: 400 }
-      );
-    }
+    if (!isAdminAction && !isSystemAction) {
+      // We expect the frontend to send a field called 'captchaToken' for public users
+      const captchaToken = body.captchaToken;
 
-    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${captchaToken}`;
+      if (!captchaToken) {
+        return NextResponse.json(
+          { success: false, error: "ReCAPTCHA token is missing." },
+          { status: 400 }
+        );
+      }
 
-    const recaptchaRes = await fetch(verifyUrl, { method: "POST" });
-    const recaptchaJson = await recaptchaRes.json();
+      const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${captchaToken}`;
 
-    if (!recaptchaJson.success) {
-      return NextResponse.json(
-        { success: false, error: "ReCAPTCHA verification failed. Are you a robot?" },
-        { status: 400 }
-      );
+      const recaptchaRes = await fetch(verifyUrl, { method: "POST" });
+      const recaptchaJson = await recaptchaRes.json();
+
+      if (!recaptchaJson.success) {
+        return NextResponse.json(
+          { success: false, error: "ReCAPTCHA verification failed. Are you a robot?" },
+          { status: 400 }
+        );
+      }
     }
     // --- GOOGLE reCAPTCHA VERIFICATION END ---
 
@@ -33,6 +39,7 @@ export async function POST(request: NextRequest) {
       to: body.to,
       subject: body.subject,
       inquiryId: body.inquiryId,
+      isAdmin: isAdminAction
     });
 
     const required = [

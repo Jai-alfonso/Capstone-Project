@@ -850,33 +850,44 @@ export default function AdminDashboard() {
 
   // Stub functions for missing handlers
   const handleRescheduleSubmit = async (
-    id: string,
-    newDate: Date,
-    newTime: string,
-    reason?: string
-  ) => {
-    if (isLogoutInProgress()) {
-      console.log(
-        "[Admin Dashboard] Blocked reschedule submit - logout in progress"
-      );
-      return;
-    }
+  id: string,
+  newDate: Date,
+  newTime: string,
+  reason?: string
+) => {
+  if (isLogoutInProgress()) return;
 
-    console.log("Rescheduling appointment", id, newDate, newTime, reason);
-    // Implement reschedule logic here
-  };
+  try {
+    const dateStr = newDate.toISOString().split("T")[0];
+    await AppointmentService.updateAppointment(id, {
+      date: dateStr,
+      time: newTime,
+      status: "rescheduled",
+      rescheduleReason: reason,
+    });
+
+    setIsRescheduleModalOpen(false);
+    toast({ title: "Success", description: "Appointment rescheduled." });
+  } catch (error: any) {
+    console.error("Reschedule error:", error);
+  }
+};
 
   const handleCancelSubmit = async (id: string, reason?: string) => {
-    if (isLogoutInProgress()) {
-      console.log(
-        "[Admin Dashboard] Blocked cancel submit - logout in progress"
-      );
-      return;
-    }
+  if (isLogoutInProgress()) return;
 
-    console.log("Cancelling appointment", id, reason);
-    // Implement cancel logic here
-  };
+  try {
+    await AppointmentService.updateAppointment(id, {
+      status: "cancelled",
+      cancelReason: reason,
+    });
+
+    setIsCancelModalOpen(false);
+    toast({ title: "Appointment Cancelled", description: "The client will be notified." });
+  } catch (error: any) {
+    console.error("Cancel error:", error);
+  }
+};
 
   if (isLoading) {
     return (
@@ -1222,7 +1233,7 @@ export default function AdminDashboard() {
                     <h3 className="font-semibold text-lg mb-6">Case Status</h3>
                     <div className="flex items-center justify-between relative">
                       {selectedCase.processSteps?.map(
-                        (step: CaseProcessStep, index: number) => (
+                        (step: any, index: number) => (
                           <div
                             key={index}
                             className="flex flex-col items-center relative z-10"
@@ -1303,7 +1314,7 @@ export default function AdminDashboard() {
               setSelectedAppointmentForDetails(null);
             }}
             appointmentId={selectedAppointmentForDetails.id}
-            isAdmin={true}
+            isAdmin={true} // Triggers the isAdminAction in the modal's internal logic
             onStatusChange={() => {}}
             onCancel={handleCancel}
             onReschedule={handleReschedule}
@@ -1322,8 +1333,9 @@ export default function AdminDashboard() {
               appointmentId={selectedAppointment.id}
               currentDate={new Date(selectedAppointment.date)}
               currentTime={selectedAppointment.time}
+              // We pass isAdmin={true} so the modal includes isAdminAction in its JSON body
+              isClient={false} 
               onReschedule={handleRescheduleSubmit}
-              isClient={false}
               appointmentService={AppointmentService}
             />
 
@@ -1343,6 +1355,7 @@ export default function AdminDashboard() {
                 time: selectedAppointment.time,
                 client: selectedAppointment.client,
               }}
+              // Passing isClient={false} ensures the internal call treats this as an admin action
               onCancel={handleCancelSubmit}
               isClient={false}
             />
